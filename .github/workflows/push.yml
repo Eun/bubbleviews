@@ -27,7 +27,7 @@ jobs:
       -
         name: Lint
         shell: bash
-        run: make lint
+        run: make linter
 
   # use nancy to scan for vulnerabilities.
   vulnerability_scanner:
