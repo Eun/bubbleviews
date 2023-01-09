@@ -7,6 +7,8 @@
 
 A simple view template for building an application with [bubbletea](https://github.com/charmbracelet/bubbletea).
 
+At the same time a collection of views ready to use.
+
 See [example/main.go](example/main.go).
 
 
