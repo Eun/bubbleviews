@@ -21,10 +21,10 @@ type View struct {
 	renderer      lipgloss.Style
 	prefix        string
 	suffix        string
-	entryUsername *entry.View
-	entryPassword *entry.View
-	btnOk         *button.View
-	btnCancel     *button.View
+	EntryUsername *entry.View
+	EntryPassword *entry.View
+	BtnOk         *button.View
+	BtnCancel     *button.View
 
 	showOK     bool
 	showCancel bool
@@ -32,21 +32,21 @@ type View struct {
 
 func (m *View) Init() tea.Cmd {
 	// set focus
-	m.currentFocus = m.entryUsername
-	m.entryUsername.Focus()
-	m.entryPassword.Blur()
-	m.btnOk.Blur()
-	m.btnCancel.Blur()
+	m.currentFocus = m.EntryUsername
+	m.EntryUsername.Focus()
+	m.EntryPassword.Blur()
+	m.BtnOk.Blur()
+	m.BtnCancel.Blur()
 
 	// reset values
-	m.entryUsername.SetValue("")
-	m.entryPassword.SetValue("")
+	m.EntryUsername.SetValue("")
+	m.EntryPassword.SetValue("")
 
 	return tea.Batch(
-		m.entryUsername.Init(),
-		m.entryPassword.Init(),
-		m.btnOk.Init(),
-		m.btnCancel.Init(),
+		m.EntryUsername.Init(),
+		m.EntryPassword.Init(),
+		m.BtnOk.Init(),
+		m.BtnCancel.Init(),
 	)
 }
 
@@ -59,12 +59,12 @@ func (m *View) Update(msg tea.Msg) tea.Cmd {
 		case tea.KeyEsc:
 			return m.respond(nil, nil, nil)
 		case tea.KeyEnter:
-			if m.currentFocus == m.btnOk || (m.currentFocus == m.entryPassword && !m.showOK) {
-				user := m.entryUsername.Value()
-				pass := m.entryPassword.Value()
+			if m.currentFocus == m.BtnOk || (m.currentFocus == m.EntryPassword && !m.showOK) {
+				user := m.EntryUsername.Value()
+				pass := m.EntryPassword.Value()
 				return m.respond(&user, &pass, nil)
 			}
-			if m.currentFocus == m.btnCancel {
+			if m.currentFocus == m.BtnCancel {
 				return m.respond(nil, nil, nil)
 			}
 			m.focusNext()
@@ -73,17 +73,17 @@ func (m *View) Update(msg tea.Msg) tea.Cmd {
 		case tea.KeyShiftTab, tea.KeyUp:
 			m.focusPrevious()
 		case tea.KeyRight:
-			if m.showCancel && m.currentFocus == m.btnOk {
+			if m.showCancel && m.currentFocus == m.BtnOk {
 				m.focusNext()
 			}
 		case tea.KeyLeft:
-			if m.showOK && m.currentFocus == m.btnCancel {
+			if m.showOK && m.currentFocus == m.BtnCancel {
 				m.focusPrevious()
 			}
 		}
 	}
 
-	return tea.Batch(m.entryUsername.Update(msg), m.entryPassword.Update(msg))
+	return tea.Batch(m.EntryUsername.Update(msg), m.EntryPassword.Update(msg))
 }
 
 func (m *View) View() string {
@@ -94,20 +94,20 @@ func (m *View) View() string {
 		sb.WriteRune('\n')
 	}
 
-	sb.WriteString(m.entryUsername.View())
+	sb.WriteString(m.EntryUsername.View())
 	sb.WriteRune('\n')
-	sb.WriteString(m.entryPassword.View())
+	sb.WriteString(m.EntryPassword.View())
 	sb.WriteRune('\n')
 
 	var buttons strings.Builder
 	if m.showOK {
-		sb.WriteString(m.btnOk.View())
+		sb.WriteString(m.BtnOk.View())
 	}
 	if m.showCancel {
 		if m.showOK {
 			sb.WriteRune(' ')
 		}
-		sb.WriteString(m.btnCancel.View())
+		sb.WriteString(m.BtnCancel.View())
 	}
 
 	if buttons.Len() > 0 {
@@ -169,87 +169,87 @@ func (m *View) respond(username, password *string, err error) func() tea.Msg {
 
 func (m *View) focusNext() {
 	switch m.currentFocus {
-	case m.entryUsername:
-		m.entryUsername.Blur()
-		m.entryPassword.Focus()
-		m.currentFocus = m.entryPassword
-	case m.entryPassword:
-		m.entryPassword.Blur()
+	case m.EntryUsername:
+		m.EntryUsername.Blur()
+		m.EntryPassword.Focus()
+		m.currentFocus = m.EntryPassword
+	case m.EntryPassword:
+		m.EntryPassword.Blur()
 		if m.showOK {
-			m.btnOk.Focus()
-			m.currentFocus = m.btnOk
+			m.BtnOk.Focus()
+			m.currentFocus = m.BtnOk
 			break
 		}
 		if m.showCancel {
-			m.btnCancel.Focus()
-			m.currentFocus = m.btnCancel
+			m.BtnCancel.Focus()
+			m.currentFocus = m.BtnCancel
 			break
 		}
-		m.entryUsername.Focus()
-		m.currentFocus = m.entryUsername
-	case m.btnOk:
-		m.btnOk.Blur()
+		m.EntryUsername.Focus()
+		m.currentFocus = m.EntryUsername
+	case m.BtnOk:
+		m.BtnOk.Blur()
 		if m.showCancel {
-			m.btnCancel.Focus()
-			m.currentFocus = m.btnCancel
+			m.BtnCancel.Focus()
+			m.currentFocus = m.BtnCancel
 			break
 		}
-		m.entryUsername.Focus()
-		m.currentFocus = m.entryUsername
-	case m.btnCancel:
-		m.btnCancel.Blur()
-		m.entryUsername.Focus()
-		m.currentFocus = m.entryUsername
+		m.EntryUsername.Focus()
+		m.currentFocus = m.EntryUsername
+	case m.BtnCancel:
+		m.BtnCancel.Blur()
+		m.EntryUsername.Focus()
+		m.currentFocus = m.EntryUsername
 	}
 }
 
 func (m *View) focusPrevious() {
 	switch m.currentFocus {
-	case m.entryUsername:
-		m.entryUsername.Blur()
+	case m.EntryUsername:
+		m.EntryUsername.Blur()
 		if m.showCancel {
-			m.btnCancel.Focus()
-			m.currentFocus = m.btnCancel
+			m.BtnCancel.Focus()
+			m.currentFocus = m.BtnCancel
 			break
 		}
 		if m.showOK {
-			m.btnOk.Focus()
-			m.currentFocus = m.btnOk
+			m.BtnOk.Focus()
+			m.currentFocus = m.BtnOk
 			break
 		}
-		m.entryPassword.Focus()
-		m.currentFocus = m.entryPassword
-	case m.entryPassword:
-		m.entryPassword.Blur()
-		m.entryUsername.Focus()
-		m.currentFocus = m.entryUsername
-	case m.btnOk:
-		m.btnOk.Blur()
-		m.entryPassword.Focus()
-		m.currentFocus = m.entryPassword
-	case m.btnCancel:
-		m.btnCancel.Blur()
+		m.EntryPassword.Focus()
+		m.currentFocus = m.EntryPassword
+	case m.EntryPassword:
+		m.EntryPassword.Blur()
+		m.EntryUsername.Focus()
+		m.currentFocus = m.EntryUsername
+	case m.BtnOk:
+		m.BtnOk.Blur()
+		m.EntryPassword.Focus()
+		m.currentFocus = m.EntryPassword
+	case m.BtnCancel:
+		m.BtnCancel.Blur()
 		if m.showOK {
-			m.btnOk.Focus()
-			m.currentFocus = m.btnOk
+			m.BtnOk.Focus()
+			m.currentFocus = m.BtnOk
 			break
 		}
-		m.entryPassword.Focus()
-		m.currentFocus = m.entryPassword
+		m.EntryPassword.Focus()
+		m.currentFocus = m.EntryPassword
 	}
 }
 
 func New() *View {
 	var m View
 	m.renderer = lipgloss.NewStyle().MaxWidth(bubbleviews.Width)
-	m.entryUsername = entry.New()
-	m.entryUsername.SetPrefix("Username")
-	m.entryPassword = entry.New()
-	m.entryPassword.SetPrefix("Password")
-	m.entryPassword.EchoMode = textinput.EchoPassword
+	m.EntryUsername = entry.New()
+	m.EntryUsername.SetPrefix("Username")
+	m.EntryPassword = entry.New()
+	m.EntryPassword.SetPrefix("Password")
+	m.EntryPassword.EchoMode = textinput.EchoPassword
 
-	m.btnOk = button.New("OK")
-	m.btnCancel = button.New("Cancel")
+	m.BtnOk = button.New("OK")
+	m.BtnCancel = button.New("Cancel")
 
 	return &m
 }

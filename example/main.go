@@ -8,8 +8,8 @@ import (
 	"github.com/Eun/bubbleviews"
 	"github.com/Eun/bubbleviews/button"
 	"github.com/Eun/bubbleviews/entry"
-	"github.com/Eun/bubbleviews/example/views/loginform"
 	"github.com/Eun/bubbleviews/example/views/selectview"
+	"github.com/Eun/bubbleviews/loginform"
 	"github.com/Eun/bubbleviews/message"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
@@ -129,10 +129,12 @@ func NewTUI() (*TUI, error) { //nolint: unparam // allow nil error
 	}
 
 	// login view
-	loginView := loginform.New()
-	loginView.SetShowOK(true)
-	loginView.SetShowCancel(true)
-	loginView.OnResponse = func(response *loginform.Response) tea.Cmd {
+	loginFormView := loginform.New()
+	loginFormView.SetShowOK(true)
+	loginFormView.SetShowCancel(true)
+	loginFormView.BtnOk.SetFocusStyle(lipgloss.NewStyle().Foreground(lipgloss.Color("170")))
+	loginFormView.BtnCancel.SetFocusStyle(lipgloss.NewStyle().Foreground(lipgloss.Color("170")))
+	loginFormView.OnResponse = func(response *loginform.Response) tea.Cmd {
 		return tui.handleResponse(response)
 	}
 
@@ -140,7 +142,7 @@ func NewTUI() (*TUI, error) { //nolint: unparam // allow nil error
 		msgView,
 		buttonView,
 		entryView,
-		loginView,
+		loginFormView,
 	)
 	tui.selectView.OnResponse = func(response *selectview.Response) tea.Cmd {
 		if response.SelectedView == nil {
