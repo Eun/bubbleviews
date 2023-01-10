@@ -86,6 +86,9 @@ jobs:
   # draft your next release notes as pull requests are merged into "master"
   # the configuration is at /.github/release-drafter.yml.
   update_release_draft:
+    permissions:
+      contents: write
+      pull-requests: read
     runs-on: ubuntu-latest
     steps:
       - uses: release-drafter/release-drafter@v5
