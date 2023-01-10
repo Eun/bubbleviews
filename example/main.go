@@ -119,8 +119,8 @@ func NewTUI() (*TUI, error) { //nolint: unparam // allow nil error
 
 	msgView.SetPrefix("main.go")
 	msgView.SetPrefixStyle(lipgloss.NewStyle().Foreground(lipgloss.Color("170")))
-	msgView.SetSuffixStyle(escStyle)
 	msgView.SetSuffix("(esc to go back)")
+	msgView.SetSuffixStyle(escStyle)
 	msgView.OnResponse = func(response *message.Response) tea.Cmd {
 		return tui.handleResponse(response)
 	}
@@ -133,8 +133,10 @@ func NewTUI() (*TUI, error) { //nolint: unparam // allow nil error
 
 	// entry view
 	entryView := entry.New()
-	entryView.SetSuffixStyle(escStyle)
+	entryView.SetPrefix("Enter some Text")
+	entryView.SetPrefixStyle(lipgloss.NewStyle().Foreground(lipgloss.Color("170")))
 	entryView.SetSuffix("(esc to go back)")
+	entryView.SetSuffixStyle(escStyle)
 	entryView.OnResponse = func(response *entry.Response) tea.Cmd {
 		return tui.handleResponse(response)
 	}
@@ -146,8 +148,9 @@ func NewTUI() (*TUI, error) { //nolint: unparam // allow nil error
 	loginFormView.BtnOk.SetFocusStyle(lipgloss.NewStyle().Foreground(lipgloss.Color("170")))
 	loginFormView.BtnCancel.SetFocusStyle(lipgloss.NewStyle().Foreground(lipgloss.Color("170")))
 	loginFormView.SetPrefix("Please Login")
-	loginFormView.SetSuffixStyle(escStyle)
+	loginFormView.SetPrefixStyle(lipgloss.NewStyle().Foreground(lipgloss.Color("170")))
 	loginFormView.SetSuffix("(esc to go back)")
+	loginFormView.SetSuffixStyle(escStyle)
 	loginFormView.OnResponse = func(response *loginform.Response) tea.Cmd {
 		return tui.handleResponse(response)
 	}
