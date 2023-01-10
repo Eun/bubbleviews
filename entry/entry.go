@@ -1,12 +1,10 @@
 package entry
 
 import (
-	"strings"
-
 	"github.com/Eun/bubbleviews"
+	"github.com/Eun/bubbleviews/ext"
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss"
 )
 
 var _ bubbleviews.View = &View{}
@@ -14,10 +12,8 @@ var _ bubbleviews.View = &View{}
 type View struct {
 	OnResponse func(response *Response) tea.Cmd
 
-	prefix      string
-	prefixStyle lipgloss.Style
-	suffix      string
-	suffixStyle lipgloss.Style
+	ext.PrefixExt
+	ext.SuffixExt
 	textinput.Model
 }
 
@@ -46,54 +42,7 @@ func (m *View) Update(msg tea.Msg) tea.Cmd {
 }
 
 func (m *View) View() string {
-	var sb strings.Builder
-
-	if m.prefix != "" {
-		sb.WriteString(m.prefixStyle.MaxWidth(m.Width).Render(m.prefix))
-		sb.WriteRune('\n')
-	}
-
-	sb.WriteString(m.Model.View())
-
-	if m.suffix != "" {
-		sb.WriteRune('\n')
-		sb.WriteString(m.suffixStyle.MaxWidth(m.Width).Render(m.suffix))
-		sb.WriteRune('\n')
-	}
-
-	return sb.String()
-}
-
-func (m *View) SetPrefix(s string) {
-	m.prefix = s
-}
-
-func (m *View) Prefix() string {
-	return m.prefix
-}
-
-func (m *View) SetPrefixStyle(style lipgloss.Style) {
-	m.prefixStyle = style
-}
-
-func (m *View) PrefixStyle() lipgloss.Style {
-	return m.prefixStyle
-}
-
-func (m *View) SetSuffix(s string) {
-	m.suffix = s
-}
-
-func (m *View) Suffix() string {
-	return m.suffix
-}
-
-func (m *View) SetSuffixStyle(style lipgloss.Style) {
-	m.suffixStyle = style
-}
-
-func (m *View) SuffixStyle() lipgloss.Style {
-	return m.suffixStyle
+	return m.RenderPrefix(m.Model.Width) + m.Model.View() + m.RenderSuffix(m.Model.Width)
 }
 
 func (m *View) respond(text *string, err error) func() tea.Msg {
@@ -109,7 +58,6 @@ func (m *View) respond(text *string, err error) func() tea.Msg {
 func New() *View {
 	var m View
 	m.Model = textinput.New()
-	m.Model.Width = bubbleviews.Width
 	m.Model.Focus()
 	return &m
 }

@@ -102,6 +102,5 @@ func New(format string, a ...any) *View {
 	text := fmt.Sprintf(format, a...)
 	m.text = "<" + text + ">"
 	m.focusText = "[" + text + "]"
-	m.width = bubbleviews.Width
 	return &m
 }

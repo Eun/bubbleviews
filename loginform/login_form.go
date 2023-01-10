@@ -6,6 +6,7 @@ import (
 	"github.com/Eun/bubbleviews"
 	"github.com/Eun/bubbleviews/button"
 	"github.com/Eun/bubbleviews/entry"
+	"github.com/Eun/bubbleviews/ext"
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
@@ -16,15 +17,17 @@ var _ bubbleviews.View = &View{}
 type View struct {
 	OnResponse func(response *Response) tea.Cmd
 
+	width        int
 	currentFocus bubbleviews.View
 
 	renderer      lipgloss.Style
-	prefix        string
-	suffix        string
 	EntryUsername *entry.View
 	EntryPassword *entry.View
 	BtnOk         *button.View
 	BtnCancel     *button.View
+
+	ext.PrefixExt
+	ext.SuffixExt
 
 	showOK     bool
 	showCancel bool
@@ -53,6 +56,7 @@ func (m *View) Init() tea.Cmd {
 func (m *View) Update(msg tea.Msg) tea.Cmd {
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
+		m.width = msg.Width
 		m.renderer = m.renderer.MaxWidth(msg.Width)
 	case tea.KeyMsg:
 		switch msg.Type {
@@ -89,10 +93,7 @@ func (m *View) Update(msg tea.Msg) tea.Cmd {
 func (m *View) View() string {
 	var sb strings.Builder
 
-	if m.prefix != "" {
-		sb.WriteString(m.renderer.Render(m.prefix))
-		sb.WriteRune('\n')
-	}
+	sb.WriteString(m.RenderPrefix(m.width))
 
 	sb.WriteString(m.EntryUsername.View())
 	sb.WriteRune('\n')
@@ -112,32 +113,11 @@ func (m *View) View() string {
 
 	if buttons.Len() > 0 {
 		sb.WriteString(m.renderer.Render(buttons.String()))
-		sb.WriteRune('\n')
 	}
 
-	if m.suffix != "" {
-		sb.WriteRune('\n')
-		sb.WriteString(m.renderer.Render(m.suffix))
-		sb.WriteRune('\n')
-	}
+	sb.WriteString(m.RenderSuffix(m.width))
 
 	return sb.String()
-}
-
-func (m *View) SetPrefix(s string) {
-	m.prefix = s
-}
-
-func (m *View) Prefix() string {
-	return m.prefix
-}
-
-func (m *View) SetSuffix(s string) {
-	m.suffix = s
-}
-
-func (m *View) Suffix() string {
-	return m.suffix
 }
 
 func (m *View) SetShowOK(show bool) {
@@ -241,7 +221,7 @@ func (m *View) focusPrevious() {
 
 func New() *View {
 	var m View
-	m.renderer = lipgloss.NewStyle().MaxWidth(bubbleviews.Width)
+	m.renderer = lipgloss.NewStyle().MaxWidth(0)
 	m.EntryUsername = entry.New()
 	m.EntryUsername.SetPrefix("Username")
 	m.EntryPassword = entry.New()

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"embed"
 	"encoding/json"
 	"log"
 	"strings"
@@ -24,11 +25,16 @@ const (
 	maxHeight = 20
 )
 
+//go:embed main.go
+var f embed.FS
+
 type TUI struct {
 	currentModel bubbleviews.View
 	quitting     bool
 
 	selectView *selectview.View
+	width      int
+	height     int
 }
 
 func (tui *TUI) Init() tea.Cmd {
@@ -44,9 +50,9 @@ func (tui *TUI) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if msg.Height > maxHeight {
 			msg.Height = maxHeight
 		}
+		tui.width = msg.Width
+		tui.height = msg.Height
 
-		bubbleviews.Width = msg.Width
-		bubbleviews.Height = msg.Height
 	case tea.KeyMsg:
 		if msg.Type == tea.KeyCtrlC {
 			tui.quitting = true
@@ -71,8 +77,8 @@ func (tui *TUI) showView(model bubbleviews.View) tea.Cmd {
 	tui.currentModel = model
 	return tea.Batch(tui.currentModel.Init(), func() tea.Msg {
 		return tea.WindowSizeMsg{
-			Width:  bubbleviews.Width,
-			Height: bubbleviews.Height,
+			Width:  tui.width,
+			Height: tui.height,
 		}
 	})
 }
@@ -107,7 +113,12 @@ func NewTUI() (*TUI, error) { //nolint: unparam // allow nil error
 	var tui TUI
 
 	// message view
-	msgView := message.New("Hello World")
+	msgView := message.New("")
+	data, _ := f.ReadFile("main.go")
+	msgView.SetMessage(string(data))
+
+	msgView.SetPrefix("main.go")
+	msgView.SetPrefixStyle(lipgloss.NewStyle().Foreground(lipgloss.Color("170")))
 	msgView.SetSuffixStyle(escStyle)
 	msgView.SetSuffix("(esc to go back)")
 	msgView.OnResponse = func(response *message.Response) tea.Cmd {
@@ -134,6 +145,9 @@ func NewTUI() (*TUI, error) { //nolint: unparam // allow nil error
 	loginFormView.SetShowCancel(true)
 	loginFormView.BtnOk.SetFocusStyle(lipgloss.NewStyle().Foreground(lipgloss.Color("170")))
 	loginFormView.BtnCancel.SetFocusStyle(lipgloss.NewStyle().Foreground(lipgloss.Color("170")))
+	loginFormView.SetPrefix("Please Login")
+	loginFormView.SetSuffixStyle(escStyle)
+	loginFormView.SetSuffix("(esc to go back)")
 	loginFormView.OnResponse = func(response *loginform.Response) tea.Cmd {
 		return tui.handleResponse(response)
 	}

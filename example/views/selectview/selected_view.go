@@ -60,7 +60,7 @@ func New(views ...bubbleviews.View) *View {
 		}
 	}
 
-	m.list = list.New(items, listItemDelegate{}, bubbleviews.Width, bubbleviews.Height)
+	m.list = list.New(items, listItemDelegate{}, 0, 0)
 	m.list.Title = "Select a View"
 	m.list.Styles.Title = lipgloss.NewStyle()
 	m.list.Styles.TitleBar = lipgloss.NewStyle()
