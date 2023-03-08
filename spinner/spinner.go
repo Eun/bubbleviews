@@ -53,8 +53,7 @@ func (m *View) Init() tea.Cmd {
 func (m *View) Update(msg tea.Msg) tea.Cmd {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
-		switch msg.Type {
-		case tea.KeyEsc:
+		if msg.Type == tea.KeyEsc {
 			if m.allowEscapeKey {
 				if m.actionCtxCancel != nil {
 					m.actionCtxCancel()
