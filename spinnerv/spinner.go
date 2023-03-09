@@ -1,4 +1,4 @@
-package spinner
+package spinnerv
 
 import (
 	"context"
@@ -20,7 +20,7 @@ type View struct {
 	width      int
 	widthStyle lipgloss.Style
 
-	spinner         spinner.Model
+	Spinner         spinner.Model
 	message         string
 	messageStyle    lipgloss.Style
 	allowEscapeKey  bool
@@ -46,7 +46,7 @@ func (m *View) Init() tea.Cmd {
 				error: m.action(m.actionCtx, m),
 			}
 		},
-		m.spinner.Tick,
+		m.Spinner.Tick,
 	)
 }
 
@@ -58,7 +58,7 @@ func (m *View) Update(msg tea.Msg) tea.Cmd {
 				if m.actionCtxCancel != nil {
 					m.actionCtxCancel()
 				}
-				return m.respond(EscPressedError{})
+				return m.respond(bubbleviews.EscPressedError{})
 			}
 		}
 	case tea.WindowSizeMsg:
@@ -72,13 +72,13 @@ func (m *View) Update(msg tea.Msg) tea.Cmd {
 		}
 	}
 	var cmd tea.Cmd
-	m.spinner, cmd = m.spinner.Update(msg)
+	m.Spinner, cmd = m.Spinner.Update(msg)
 	return cmd
 }
 
 func (m *View) View() string {
 	return m.RenderPrefix(m.width) +
-		m.widthStyle.Render(m.spinner.View()+m.messageStyle.Render(m.message)) +
+		m.widthStyle.Render(m.Spinner.View()+m.messageStyle.Render(m.message)) +
 		m.RenderSuffix(m.width)
 }
 
@@ -99,19 +99,19 @@ func (m *View) MessageStyle() lipgloss.Style {
 }
 
 func (m *View) SetSpinnerStyle(s lipgloss.Style) {
-	m.spinner.Style = s
+	m.Spinner.Style = s
 }
 
 func (m *View) SpinnerStyle() lipgloss.Style {
-	return m.spinner.Style
+	return m.Spinner.Style
 }
 
 func (m *View) SetSpinnerType(s spinner.Spinner) {
-	m.spinner.Spinner = s
+	m.Spinner.Spinner = s
 }
 
 func (m *View) SpinnerType() spinner.Spinner {
-	return m.spinner.Spinner
+	return m.Spinner.Spinner
 }
 
 func (m *View) SetAllowEscapeKey(b bool) {
@@ -134,7 +134,7 @@ func (m *View) respond(err error) func() tea.Msg {
 func New(message string, action Action) *View {
 	var m View
 	m.message = message
-	m.spinner = spinner.New()
+	m.Spinner = spinner.New()
 	m.action = action
 	return &m
 }

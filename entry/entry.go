@@ -14,41 +14,43 @@ type View struct {
 
 	ext.PrefixExt
 	ext.SuffixExt
-	textinput.Model
+	TextInput textinput.Model
 }
 
 func (m *View) Init() tea.Cmd {
-	m.SetValue("")
-	return textinput.Blink
+	return tea.Batch(
+		tea.ClearScreen,
+		textinput.Blink,
+	)
 }
 
 func (m *View) Update(msg tea.Msg) tea.Cmd {
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
-		m.Model.Width = msg.Width
+		m.TextInput.Width = msg.Width
 	case tea.KeyMsg:
 		switch msg.Type {
 		case tea.KeyEsc:
-			return m.respond(nil, nil)
+			return m.respond(nil, bubbleviews.EscPressedError{})
 		case tea.KeyEnter:
-			v := m.Model.Value()
+			v := m.TextInput.Value()
 			return m.respond(&v, nil)
 		}
 	}
 
 	var cmd tea.Cmd
-	m.Model, cmd = m.Model.Update(msg)
+	m.TextInput, cmd = m.TextInput.Update(msg)
 	return cmd
 }
 
 func (m *View) View() string {
-	return m.RenderPrefix(m.Model.Width) + m.Model.View() + m.RenderSuffix(m.Model.Width)
+	return m.RenderPrefix(m.TextInput.Width) + m.TextInput.View() + m.RenderSuffix(m.TextInput.Width)
 }
 
 func (m *View) respond(text *string, err error) func() tea.Msg {
 	return func() tea.Msg {
 		return &Response{
-			model: m,
+			view:  m,
 			Text:  text,
 			Error: err,
 		}
@@ -57,7 +59,7 @@ func (m *View) respond(text *string, err error) func() tea.Msg {
 
 func New() *View {
 	var m View
-	m.Model = textinput.New()
-	m.Model.Focus()
+	m.TextInput = textinput.New()
+	m.TextInput.Focus()
 	return &m
 }
