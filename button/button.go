@@ -22,15 +22,17 @@ type View struct {
 }
 
 func (m *View) Init() tea.Cmd {
-	return nil
+	return tea.ClearScreen
 }
 
 func (m *View) Update(msg tea.Msg) tea.Cmd {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		switch msg.Type {
-		case tea.KeyEnter, tea.KeyEsc:
-			return m.respond()
+		case tea.KeyEnter:
+			return m.respond(nil)
+		case tea.KeyEsc:
+			return m.respond(bubbleviews.EscPressedError{})
 		}
 	case tea.WindowSizeMsg:
 		m.width = msg.Width
@@ -89,10 +91,11 @@ func (m *View) FocusStyle() lipgloss.Style {
 	return m.focusStyle
 }
 
-func (m *View) respond() func() tea.Msg {
+func (m *View) respond(err error) func() tea.Msg {
 	return func() tea.Msg {
 		return &Response{
-			model: m,
+			view:  m,
+			Error: err,
 		}
 	}
 }

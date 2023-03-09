@@ -1,18 +1,16 @@
-package spinner
+package spinnerv
 
 import (
 	"github.com/Eun/bubbleviews"
 	tea "github.com/charmbracelet/bubbletea"
 )
 
+var _ bubbleviews.ResponseMessage = &Response{}
+
 type Response struct {
 	model *View
 	Error error
 }
-
-type EscPressedError struct{}
-
-func (EscPressedError) Error() string { return "esc was pressed" }
 
 func (r *Response) View() bubbleviews.View {
 	return r.model

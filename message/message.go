@@ -16,15 +16,14 @@ var _ bubbleviews.View = &View{}
 type View struct {
 	OnResponse func(response *Response) tea.Cmd
 
-	viewport viewport.Model
+	Viewport viewport.Model
 	message  string
 	ext.PrefixExt
 	ext.SuffixExt
 }
 
 func (m *View) Init() tea.Cmd {
-	m.viewport.SetYOffset(0)
-	return nil
+	return tea.ClearScreen
 }
 
 func (m *View) Update(msg tea.Msg) tea.Cmd {
@@ -35,7 +34,7 @@ func (m *View) Update(msg tea.Msg) tea.Cmd {
 			return m.respond()
 		}
 	case tea.WindowSizeMsg:
-		m.viewport.Width = msg.Width
+		m.Viewport.Width = msg.Width
 
 		newLineCount := m.PrefixExt.PrefixRenderHeight() + m.SuffixExt.SuffixRenderHeight()
 		msg.Height -= newLineCount
@@ -43,21 +42,21 @@ func (m *View) Update(msg tea.Msg) tea.Cmd {
 			msg.Height = 0
 		}
 
-		m.viewport.Height = msg.Height
-		m.viewport.SetContent(wrap.String(wordwrap.String(m.message, msg.Width), msg.Width))
+		m.Viewport.Height = msg.Height
+		m.Viewport.SetContent(wrap.String(wordwrap.String(m.message, msg.Width), msg.Width))
 	}
 	var cmd tea.Cmd
-	m.viewport, cmd = m.viewport.Update(msg)
+	m.Viewport, cmd = m.Viewport.Update(msg)
 	return cmd
 }
 
 func (m *View) View() string {
-	return m.RenderPrefix(m.viewport.Width) + m.viewport.View() + m.RenderSuffix(m.viewport.Width)
+	return m.RenderPrefix(m.Viewport.Width) + m.Viewport.View() + m.RenderSuffix(m.Viewport.Width)
 }
 
 func (m *View) SetMessage(s string) {
 	m.message = s
-	m.viewport.SetContent(wrap.String(wordwrap.String(m.message, m.viewport.Width), m.viewport.Width))
+	m.Viewport.SetContent(wrap.String(wordwrap.String(m.message, m.Viewport.Width), m.Viewport.Width))
 }
 
 func (m *View) Message() string {
@@ -67,7 +66,7 @@ func (m *View) Message() string {
 func (m *View) respond() func() tea.Msg {
 	return func() tea.Msg {
 		return &Response{
-			model: m,
+			view: m,
 		}
 	}
 }
@@ -75,6 +74,6 @@ func (m *View) respond() func() tea.Msg {
 func New(format string, a ...any) *View {
 	var m View
 	m.message = fmt.Sprintf(format, a...)
-	m.viewport = viewport.New(0, 0)
+	m.Viewport = viewport.New(0, 0)
 	return &m
 }

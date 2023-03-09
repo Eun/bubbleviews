@@ -13,7 +13,7 @@ import (
 	"github.com/Eun/bubbleviews/example/views/selectview"
 	"github.com/Eun/bubbleviews/loginform"
 	"github.com/Eun/bubbleviews/message"
-	"github.com/Eun/bubbleviews/spinner"
+	"github.com/Eun/bubbleviews/spinnerv"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/sanity-io/litter"
@@ -35,9 +35,8 @@ type TUI struct {
 	currentModel bubbleviews.View
 	quitting     bool
 
-	selectView *selectview.View
-	width      int
-	height     int
+	width  int
+	height int
 }
 
 func (tui *TUI) Init() tea.Cmd {
@@ -96,14 +95,12 @@ func (tui *TUI) handleResponse(response interface{}) tea.Cmd {
 	msg.SetSuffixStyle(escStyle)
 	msg.SetSuffix("(esc to go back)")
 	msg.OnResponse = func(response *message.Response) tea.Cmd {
-		return tui.showView(tui.selectView)
+		return tui.showView(tui.rootView())
 	}
 	return tui.showView(msg)
 }
 
-func NewTUI() (*TUI, error) { //nolint: unparam // allow nil error
-	var tui TUI
-
+func (tui *TUI) rootView() bubbleviews.View {
 	// message view
 	msgView := message.New("")
 	data, _ := f.ReadFile("main.go")
@@ -148,7 +145,7 @@ func NewTUI() (*TUI, error) { //nolint: unparam // allow nil error
 	}
 
 	// spinner view
-	spinnerView := spinner.New(" Loading...", func(ctx context.Context, spinner *spinner.View) error {
+	spinnerView := spinnerv.New(" Loading...", func(ctx context.Context, spinner *spinnerv.View) error {
 		style := lipgloss.NewStyle().Foreground(lipgloss.Color("170"))
 		for i := 5; i >= 0; i-- {
 			select {
@@ -166,25 +163,29 @@ func NewTUI() (*TUI, error) { //nolint: unparam // allow nil error
 	spinnerView.SetSuffixStyle(escStyle)
 	spinnerView.SetSpinnerStyle(lipgloss.NewStyle().Foreground(lipgloss.Color("170")))
 	spinnerView.SetAllowEscapeKey(true)
-	spinnerView.OnResponse = func(response *spinner.Response) tea.Cmd {
+	spinnerView.OnResponse = func(response *spinnerv.Response) tea.Cmd {
 		return tui.handleResponse(response)
 	}
 
-	tui.selectView = selectview.New(
+	rootView := selectview.New(
 		msgView,
 		buttonView,
 		entryView,
 		loginFormView,
 		spinnerView,
 	)
-	tui.selectView.OnResponse = func(response *selectview.Response) tea.Cmd {
+	rootView.OnResponse = func(response *selectview.Response) tea.Cmd {
 		if response.SelectedView == nil {
 			return nil
 		}
 		return tui.showView(response.SelectedView)
 	}
-	tui.currentModel = tui.selectView
+	return rootView
+}
 
+func NewTUI() (*TUI, error) { //nolint: unparam // allow nil error
+	var tui TUI
+	tui.showView(tui.rootView())
 	return &tui, nil
 }
 

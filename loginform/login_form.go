@@ -34,18 +34,8 @@ type View struct {
 }
 
 func (m *View) Init() tea.Cmd {
-	// set focus
-	m.currentFocus = m.EntryUsername
-	m.EntryUsername.Focus()
-	m.EntryPassword.Blur()
-	m.BtnOk.Blur()
-	m.BtnCancel.Blur()
-
-	// reset values
-	m.EntryUsername.SetValue("")
-	m.EntryPassword.SetValue("")
-
 	return tea.Batch(
+		tea.ClearScreen,
 		m.EntryUsername.Init(),
 		m.EntryPassword.Init(),
 		m.BtnOk.Init(),
@@ -61,11 +51,11 @@ func (m *View) Update(msg tea.Msg) tea.Cmd {
 	case tea.KeyMsg:
 		switch msg.Type {
 		case tea.KeyEsc:
-			return m.respond(nil, nil, nil)
+			return m.respond(nil, nil, bubbleviews.EscPressedError{})
 		case tea.KeyEnter:
 			if m.currentFocus == m.BtnOk || (m.currentFocus == m.EntryPassword && !m.showOK) {
-				user := m.EntryUsername.Value()
-				pass := m.EntryPassword.Value()
+				user := m.EntryUsername.TextInput.Value()
+				pass := m.EntryPassword.TextInput.Value()
 				return m.respond(&user, &pass, nil)
 			}
 			if m.currentFocus == m.BtnCancel {
@@ -139,7 +129,7 @@ func (m *View) ShowCancel() bool {
 func (m *View) respond(username, password *string, err error) func() tea.Msg {
 	return func() tea.Msg {
 		return &Response{
-			model:    m,
+			view:     m,
 			Username: username,
 			Password: password,
 			Error:    err,
@@ -150,11 +140,11 @@ func (m *View) respond(username, password *string, err error) func() tea.Msg {
 func (m *View) focusNext() {
 	switch m.currentFocus {
 	case m.EntryUsername:
-		m.EntryUsername.Blur()
-		m.EntryPassword.Focus()
+		m.EntryUsername.TextInput.Blur()
+		m.EntryPassword.TextInput.Focus()
 		m.currentFocus = m.EntryPassword
 	case m.EntryPassword:
-		m.EntryPassword.Blur()
+		m.EntryPassword.TextInput.Blur()
 		if m.showOK {
 			m.BtnOk.Focus()
 			m.currentFocus = m.BtnOk
@@ -165,7 +155,7 @@ func (m *View) focusNext() {
 			m.currentFocus = m.BtnCancel
 			break
 		}
-		m.EntryUsername.Focus()
+		m.EntryUsername.TextInput.Focus()
 		m.currentFocus = m.EntryUsername
 	case m.BtnOk:
 		m.BtnOk.Blur()
@@ -174,11 +164,11 @@ func (m *View) focusNext() {
 			m.currentFocus = m.BtnCancel
 			break
 		}
-		m.EntryUsername.Focus()
+		m.EntryUsername.TextInput.Focus()
 		m.currentFocus = m.EntryUsername
 	case m.BtnCancel:
 		m.BtnCancel.Blur()
-		m.EntryUsername.Focus()
+		m.EntryUsername.TextInput.Focus()
 		m.currentFocus = m.EntryUsername
 	}
 }
@@ -186,7 +176,7 @@ func (m *View) focusNext() {
 func (m *View) focusPrevious() {
 	switch m.currentFocus {
 	case m.EntryUsername:
-		m.EntryUsername.Blur()
+		m.EntryUsername.TextInput.Blur()
 		if m.showCancel {
 			m.BtnCancel.Focus()
 			m.currentFocus = m.BtnCancel
@@ -197,15 +187,15 @@ func (m *View) focusPrevious() {
 			m.currentFocus = m.BtnOk
 			break
 		}
-		m.EntryPassword.Focus()
+		m.EntryPassword.TextInput.Focus()
 		m.currentFocus = m.EntryPassword
 	case m.EntryPassword:
-		m.EntryPassword.Blur()
-		m.EntryUsername.Focus()
+		m.EntryPassword.TextInput.Blur()
+		m.EntryUsername.TextInput.Focus()
 		m.currentFocus = m.EntryUsername
 	case m.BtnOk:
 		m.BtnOk.Blur()
-		m.EntryPassword.Focus()
+		m.EntryPassword.TextInput.Focus()
 		m.currentFocus = m.EntryPassword
 	case m.BtnCancel:
 		m.BtnCancel.Blur()
@@ -214,7 +204,7 @@ func (m *View) focusPrevious() {
 			m.currentFocus = m.BtnOk
 			break
 		}
-		m.EntryPassword.Focus()
+		m.EntryPassword.TextInput.Focus()
 		m.currentFocus = m.EntryPassword
 	}
 }
@@ -226,10 +216,16 @@ func New() *View {
 	m.EntryUsername.SetPrefix("Username")
 	m.EntryPassword = entry.New()
 	m.EntryPassword.SetPrefix("Password")
-	m.EntryPassword.EchoMode = textinput.EchoPassword
+	m.EntryPassword.TextInput.EchoMode = textinput.EchoPassword
 
 	m.BtnOk = button.New("OK")
 	m.BtnCancel = button.New("Cancel")
+
+	m.currentFocus = m.EntryUsername
+	m.EntryUsername.TextInput.Focus()
+	m.EntryPassword.TextInput.Blur()
+	m.BtnOk.Blur()
+	m.BtnCancel.Blur()
 
 	return &m
 }
