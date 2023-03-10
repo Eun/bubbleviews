@@ -12,10 +12,12 @@ import (
 
 var _ bubbleviews.View = &View{}
 
+type OnResponseFunc func(response *Response) tea.Cmd
+
 type Action func(ctx context.Context, spinner *View) error
 
 type View struct {
-	OnResponse func(response *Response) tea.Cmd
+	onResponse OnResponseFunc
 
 	width      int
 	widthStyle lipgloss.Style
@@ -120,6 +122,14 @@ func (m *View) SetAllowEscapeKey(b bool) {
 
 func (m *View) AllowEscapeKey() bool {
 	return m.allowEscapeKey
+}
+
+func (m *View) SetOnResponse(fn OnResponseFunc) {
+	m.onResponse = fn
+}
+
+func (m *View) OnResponse() OnResponseFunc {
+	return m.onResponse
 }
 
 func (m *View) respond(err error) func() tea.Msg {

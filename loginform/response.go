@@ -20,8 +20,8 @@ func (r *Response) View() bubbleviews.View {
 
 func (r *Response) OnResponse(msg bubbleviews.ResponseMessage) tea.Cmd {
 	response, ok := msg.(*Response)
-	if !ok || r.view.OnResponse == nil {
+	if !ok || r.view.onResponse == nil {
 		return nil
 	}
-	return r.view.OnResponse(response)
+	return r.view.onResponse(response)
 }

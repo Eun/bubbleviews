@@ -6,18 +6,18 @@ import (
 )
 
 type Response struct {
-	model        *View
+	view         *View
 	SelectedView bubbleviews.View
 }
 
 func (r *Response) View() bubbleviews.View {
-	return r.model
+	return r.view
 }
 
 func (r *Response) OnResponse(msg bubbleviews.ResponseMessage) tea.Cmd {
 	response, ok := msg.(*Response)
-	if !ok || r.model.OnResponse == nil {
+	if !ok || r.view.onResponse == nil {
 		return nil
 	}
-	return r.model.OnResponse(response)
+	return r.view.onResponse(response)
 }

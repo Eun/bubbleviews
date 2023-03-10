@@ -1,4 +1,4 @@
-package button
+package listv
 
 import (
 	"github.com/Eun/bubbleviews"
@@ -8,8 +8,9 @@ import (
 var _ bubbleviews.ResponseMessage = &Response{}
 
 type Response struct {
-	view  *View
-	Error error
+	view      *View
+	Selection ListItem
+	Error     error
 }
 
 func (r *Response) View() bubbleviews.View {

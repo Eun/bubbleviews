@@ -10,8 +10,10 @@ import (
 
 var _ bubbleviews.View = &View{}
 
+type OnResponseFunc func(response *Response) tea.Cmd
+
 type View struct {
-	OnResponse func(response *Response) tea.Cmd
+	onResponse OnResponseFunc
 
 	style      lipgloss.Style
 	focusStyle lipgloss.Style
@@ -89,6 +91,14 @@ func (m *View) SetFocusStyle(style lipgloss.Style) {
 
 func (m *View) FocusStyle() lipgloss.Style {
 	return m.focusStyle
+}
+
+func (m *View) SetOnResponse(fn OnResponseFunc) {
+	m.onResponse = fn
+}
+
+func (m *View) OnResponse() OnResponseFunc {
+	return m.onResponse
 }
 
 func (m *View) respond(err error) func() tea.Msg {
