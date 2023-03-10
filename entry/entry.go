@@ -9,8 +9,10 @@ import (
 
 var _ bubbleviews.View = &View{}
 
+type OnResponseFunc func(response *Response) tea.Cmd
+
 type View struct {
-	OnResponse func(response *Response) tea.Cmd
+	onResponse OnResponseFunc
 
 	ext.PrefixExt
 	ext.SuffixExt
@@ -45,6 +47,14 @@ func (m *View) Update(msg tea.Msg) tea.Cmd {
 
 func (m *View) View() string {
 	return m.RenderPrefix(m.TextInput.Width) + m.TextInput.View() + m.RenderSuffix(m.TextInput.Width)
+}
+
+func (m *View) SetOnResponse(fn OnResponseFunc) {
+	m.onResponse = fn
+}
+
+func (m *View) OnResponse() OnResponseFunc {
+	return m.onResponse
 }
 
 func (m *View) respond(text *string, err error) func() tea.Msg {

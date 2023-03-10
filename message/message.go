@@ -13,8 +13,10 @@ import (
 
 var _ bubbleviews.View = &View{}
 
+type OnResponseFunc func(response *Response) tea.Cmd
+
 type View struct {
-	OnResponse func(response *Response) tea.Cmd
+	onResponse OnResponseFunc
 
 	Viewport viewport.Model
 	message  string
@@ -61,6 +63,14 @@ func (m *View) SetMessage(s string) {
 
 func (m *View) Message() string {
 	return m.message
+}
+
+func (m *View) SetOnResponse(fn OnResponseFunc) {
+	m.onResponse = fn
+}
+
+func (m *View) OnResponse() OnResponseFunc {
+	return m.onResponse
 }
 
 func (m *View) respond() func() tea.Msg {

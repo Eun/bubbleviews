@@ -11,6 +11,7 @@ import (
 	"github.com/Eun/bubbleviews/button"
 	"github.com/Eun/bubbleviews/entry"
 	"github.com/Eun/bubbleviews/example/views/selectview"
+	"github.com/Eun/bubbleviews/listv"
 	"github.com/Eun/bubbleviews/loginform"
 	"github.com/Eun/bubbleviews/message"
 	"github.com/Eun/bubbleviews/spinnerv"
@@ -94,9 +95,9 @@ func (tui *TUI) handleResponse(response interface{}) tea.Cmd {
 
 	msg.SetSuffixStyle(escStyle)
 	msg.SetSuffix("(esc to go back)")
-	msg.OnResponse = func(response *message.Response) tea.Cmd {
+	msg.SetOnResponse(func(response *message.Response) tea.Cmd {
 		return tui.showView(tui.rootView())
-	}
+	})
 	return tui.showView(msg)
 }
 
@@ -110,15 +111,15 @@ func (tui *TUI) rootView() bubbleviews.View {
 	msgView.SetPrefixStyle(lipgloss.NewStyle().Foreground(lipgloss.Color("170")))
 	msgView.SetSuffix("(esc to go back)")
 	msgView.SetSuffixStyle(escStyle)
-	msgView.OnResponse = func(response *message.Response) tea.Cmd {
+	msgView.SetOnResponse(func(response *message.Response) tea.Cmd {
 		return tui.handleResponse(response)
-	}
+	})
 
 	// button view
 	buttonView := button.New("Hello World")
-	buttonView.OnResponse = func(response *button.Response) tea.Cmd {
+	buttonView.SetOnResponse(func(response *button.Response) tea.Cmd {
 		return tui.handleResponse(response)
-	}
+	})
 
 	// entry view
 	entryView := entry.New()
@@ -126,9 +127,9 @@ func (tui *TUI) rootView() bubbleviews.View {
 	entryView.SetPrefixStyle(lipgloss.NewStyle().Foreground(lipgloss.Color("170")))
 	entryView.SetSuffix("(esc to go back)")
 	entryView.SetSuffixStyle(escStyle)
-	entryView.OnResponse = func(response *entry.Response) tea.Cmd {
+	entryView.SetOnResponse(func(response *entry.Response) tea.Cmd {
 		return tui.handleResponse(response)
-	}
+	})
 
 	// login view
 	loginFormView := loginform.New()
@@ -140,9 +141,9 @@ func (tui *TUI) rootView() bubbleviews.View {
 	loginFormView.SetPrefixStyle(lipgloss.NewStyle().Foreground(lipgloss.Color("170")))
 	loginFormView.SetSuffix("(esc to go back)")
 	loginFormView.SetSuffixStyle(escStyle)
-	loginFormView.OnResponse = func(response *loginform.Response) tea.Cmd {
+	loginFormView.SetOnResponse(func(response *loginform.Response) tea.Cmd {
 		return tui.handleResponse(response)
-	}
+	})
 
 	// spinner view
 	spinnerView := spinnerv.New(" Loading...", func(ctx context.Context, spinner *spinnerv.View) error {
@@ -163,9 +164,30 @@ func (tui *TUI) rootView() bubbleviews.View {
 	spinnerView.SetSuffixStyle(escStyle)
 	spinnerView.SetSpinnerStyle(lipgloss.NewStyle().Foreground(lipgloss.Color("170")))
 	spinnerView.SetAllowEscapeKey(true)
-	spinnerView.OnResponse = func(response *spinnerv.Response) tea.Cmd {
+	spinnerView.SetOnResponse(func(response *spinnerv.Response) tea.Cmd {
 		return tui.handleResponse(response)
+	})
+
+	items := []listv.ListItem{
+		listv.NewSimpleListItem("opt1", "Option 1", ""),
+		listv.NewSimpleListItem("opt2", "Option 2", ""),
+		listv.NewSimpleListItem("opr3", "Option 3", ""),
 	}
+	// list view
+	listView := listv.New(items,
+		listv.NewSimpleListItemDelegate(
+			lipgloss.NewStyle().PaddingLeft(2),
+			"> ",
+			lipgloss.NewStyle().Foreground(lipgloss.Color("170")),
+		),
+	)
+	listView.SetPrefix("Please be Patient")
+	listView.SetPrefixStyle(lipgloss.NewStyle().Foreground(lipgloss.Color("170")))
+	listView.SetSuffix("(esc to go back)")
+	listView.SetSuffixStyle(escStyle)
+	listView.SetOnResponse(func(response *listv.Response) tea.Cmd {
+		return tui.handleResponse(response)
+	})
 
 	rootView := selectview.New(
 		msgView,
@@ -173,13 +195,14 @@ func (tui *TUI) rootView() bubbleviews.View {
 		entryView,
 		loginFormView,
 		spinnerView,
+		listView,
 	)
-	rootView.OnResponse = func(response *selectview.Response) tea.Cmd {
+	rootView.SetOnResponse(func(response *selectview.Response) tea.Cmd {
 		if response.SelectedView == nil {
 			return nil
 		}
 		return tui.showView(response.SelectedView)
-	}
+	})
 	return rootView
 }
 

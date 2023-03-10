@@ -14,8 +14,10 @@ import (
 
 var _ bubbleviews.View = &View{}
 
+type OnResponseFunc func(response *Response) tea.Cmd
+
 type View struct {
-	OnResponse func(response *Response) tea.Cmd
+	onResponse OnResponseFunc
 
 	width        int
 	currentFocus bubbleviews.View
@@ -124,6 +126,14 @@ func (m *View) SetShowCancel(show bool) {
 
 func (m *View) ShowCancel() bool {
 	return m.showCancel
+}
+
+func (m *View) SetOnResponse(fn OnResponseFunc) {
+	m.onResponse = fn
+}
+
+func (m *View) OnResponse() OnResponseFunc {
+	return m.onResponse
 }
 
 func (m *View) respond(username, password *string, err error) func() tea.Msg {
