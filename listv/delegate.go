@@ -17,7 +17,7 @@ type listItemDelegate struct {
 func (d *listItemDelegate) Height() int                               { return 1 }
 func (d *listItemDelegate) Spacing() int                              { return 0 }
 func (d *listItemDelegate) Update(msg tea.Msg, m *list.Model) tea.Cmd { return nil }
-func (d *listItemDelegate) Render(w io.Writer, m list.Model, index int, item list.Item) {
+func (d *listItemDelegate) Render(w io.Writer, m list.Model, index int, item list.Item) { //nolint: gocritic // disable hugeParam
 	i, ok := item.(ListItem)
 	if !ok {
 		return

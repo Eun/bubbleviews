@@ -1,7 +1,7 @@
 package listv
 
 type ListItem interface {
-	Id() string
+	ID() string
 	Title() string
 	FilterValue() string
 }
@@ -14,7 +14,7 @@ type simpleListItem struct {
 	filterValue string
 }
 
-func (s *simpleListItem) Id() string {
+func (s *simpleListItem) ID() string {
 	return s.id
 }
 
