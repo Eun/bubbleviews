@@ -111,8 +111,8 @@ func (r *Root) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 func New() *Root {
 	return &Root{
-		maxWidth:      60,
-		maxHeight:     20,
+		maxWidth:      60, //nolint: gomnd // allow const
+		maxHeight:     20, //nolint: gomnd // allow const
 		currentWidth:  0,
 		currentHeight: 0,
 		currentView:   &dummyView{},
