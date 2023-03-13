@@ -78,7 +78,7 @@ func (tui *TUI) View() string {
 
 func (tui *TUI) showView(model bubbleviews.View) tea.Cmd {
 	tui.currentModel = model
-	return tea.Batch(tui.currentModel.Init(), func() tea.Msg {
+	return tea.Batch(tea.ClearScreen, tui.currentModel.Init(), func() tea.Msg {
 		return tea.WindowSizeMsg{
 			Width:  tui.width,
 			Height: tui.height,

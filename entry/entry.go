@@ -20,10 +20,7 @@ type View struct {
 }
 
 func (m *View) Init() tea.Cmd {
-	return tea.Batch(
-		tea.ClearScreen,
-		textinput.Blink,
-	)
+	return textinput.Blink
 }
 
 func (m *View) Update(msg tea.Msg) tea.Cmd {

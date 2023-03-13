@@ -19,9 +19,7 @@ type View struct {
 }
 
 func (m *View) Init() tea.Cmd {
-	return tea.Batch(
-		tea.ClearScreen,
-	)
+	return nil
 }
 
 func (m *View) Update(msg tea.Msg) tea.Cmd {
