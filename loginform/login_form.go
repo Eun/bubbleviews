@@ -37,7 +37,6 @@ type View struct {
 
 func (m *View) Init() tea.Cmd {
 	return tea.Batch(
-		tea.ClearScreen,
 		m.EntryUsername.Init(),
 		m.EntryPassword.Init(),
 		m.BtnOk.Init(),
