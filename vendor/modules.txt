@@ -18,7 +18,7 @@ github.com/charmbracelet/bubbles/viewport
 # github.com/charmbracelet/bubbletea v0.24.2
 ## explicit; go 1.17
 github.com/charmbracelet/bubbletea
-# github.com/charmbracelet/lipgloss v0.7.1
+# github.com/charmbracelet/lipgloss v0.8.0
 ## explicit; go 1.17
 github.com/charmbracelet/lipgloss
 # github.com/containerd/console v1.0.4-0.20230313162750-1ae8d489ac81
@@ -49,7 +49,7 @@ github.com/muesli/reflow/ansi
 github.com/muesli/reflow/truncate
 github.com/muesli/reflow/wordwrap
 github.com/muesli/reflow/wrap
-# github.com/muesli/termenv v0.15.1
+# github.com/muesli/termenv v0.15.2
 ## explicit; go 1.17
 github.com/muesli/termenv
 # github.com/rivo/uniseg v0.4.3
@@ -61,7 +61,7 @@ github.com/sahilm/fuzzy
 # golang.org/x/sync v0.1.0
 ## explicit
 golang.org/x/sync/errgroup
-# golang.org/x/sys v0.6.0
+# golang.org/x/sys v0.7.0
 ## explicit; go 1.17
 golang.org/x/sys/internal/unsafeheader
 golang.org/x/sys/plan9
