@@ -87,8 +87,22 @@ type Rank struct {
 // DefaultFilter uses the sahilm/fuzzy to filter through the list.
 // This is set by default.
 func DefaultFilter(term string, targets []string) []Rank {
-	var ranks = fuzzy.Find(term, targets)
+	ranks := fuzzy.Find(term, targets)
 	sort.Stable(ranks)
+	result := make([]Rank, len(ranks))
+	for i, r := range ranks {
+		result[i] = Rank{
+			Index:          r.Index,
+			MatchedIndexes: r.MatchedIndexes,
+		}
+	}
+	return result
+}
+
+// UnsortedFilter uses the sahilm/fuzzy to filter through the list. It does not
+// sort the results.
+func UnsortedFilter(term string, targets []string) []Rank {
+	ranks := fuzzy.FindNoSort(term, targets)
 	result := make([]Rank, len(ranks))
 	for i, r := range ranks {
 		result[i] = Rank{
@@ -261,7 +275,7 @@ func (m Model) ShowTitle() bool {
 	return m.showTitle
 }
 
-// SetShowFilter shows or hides the filer bar. Note that this does not disable
+// SetShowFilter shows or hides the filter bar. Note that this does not disable
 // filtering, it simply hides the built-in filter view. This allows you to
 // use the FilterInput to render the filtering UI differently without having to
 // re-implement filtering from scratch.
@@ -1160,7 +1174,7 @@ func (m Model) populatedView() string {
 		if m.filterState == Filtering {
 			return ""
 		}
-		return m.Styles.NoItems.Render("No " + m.itemNamePlural + " found.")
+		return m.Styles.NoItems.Render("No " + m.itemNamePlural + ".")
 	}
 
 	if len(items) > 0 {
@@ -1204,11 +1218,11 @@ func filterItems(m Model) tea.Cmd {
 			return FilterMatchesMsg(m.itemsAsFilterItems()) // return nothing
 		}
 
-		targets := []string{}
 		items := m.items
+		targets := make([]string, len(items))
 
-		for _, t := range items {
-			targets = append(targets, t.FilterValue())
+		for i, t := range items {
+			targets[i] = t.FilterValue()
 		}
 
 		filterMatches := []filteredItem{}
