@@ -18,8 +18,8 @@ github.com/charmbracelet/bubbles/viewport
 # github.com/charmbracelet/bubbletea v0.25.0
 ## explicit; go 1.17
 github.com/charmbracelet/bubbletea
-# github.com/charmbracelet/lipgloss v0.9.1
-## explicit; go 1.17
+# github.com/charmbracelet/lipgloss v0.10.0
+## explicit; go 1.18
 github.com/charmbracelet/lipgloss
 # github.com/containerd/console v1.0.4-0.20230313162750-1ae8d489ac81
 ## explicit; go 1.13
@@ -52,7 +52,7 @@ github.com/muesli/reflow/wrap
 # github.com/muesli/termenv v0.15.2
 ## explicit; go 1.17
 github.com/muesli/termenv
-# github.com/rivo/uniseg v0.4.6
+# github.com/rivo/uniseg v0.4.7
 ## explicit; go 1.18
 github.com/rivo/uniseg
 # github.com/sahilm/fuzzy v0.1.1-0.20230530133925-c48e322e2a8f
