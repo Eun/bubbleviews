@@ -47,6 +47,9 @@ type standardRenderer struct {
 	// whether or not we're currently using bracketed paste
 	bpActive bool
 
+	// reportingFocus whether reporting focus events is enabled
+	reportingFocus bool
+
 	// renderer dimensions; usually the size of the window
 	width  int
 	height int
@@ -108,6 +111,8 @@ func (r *standardRenderer) stop() {
 	defer r.mtx.Unlock()
 
 	r.execute(ansi.EraseEntireLine)
+	// Move the cursor back to the beginning of the line
+	r.execute("\r")
 
 	if r.useANSICompressor {
 		if w, ok := r.out.(io.WriteCloser); ok {
@@ -132,6 +137,8 @@ func (r *standardRenderer) kill() {
 	defer r.mtx.Unlock()
 
 	r.execute(ansi.EraseEntireLine)
+	// Move the cursor back to the beginning of the line
+	r.execute("\r")
 }
 
 // listen waits for ticks on the ticker, or a signal to stop the renderer.
@@ -269,7 +276,7 @@ func (r *standardRenderer) flush() {
 		// This case fixes a bug in macOS terminal. In other terminals the
 		// other case seems to do the job regardless of whether or not we're
 		// using the full terminal window.
-		buf.WriteString(ansi.MoveCursor(r.linesRendered, 0))
+		buf.WriteString(ansi.SetCursorPosition(0, r.linesRendered))
 	} else {
 		buf.WriteString(ansi.CursorLeft(r.width))
 	}
@@ -305,8 +312,8 @@ func (r *standardRenderer) clearScreen() {
 	r.mtx.Lock()
 	defer r.mtx.Unlock()
 
-	r.execute(ansi.EraseEntireDisplay)
-	r.execute(ansi.MoveCursorOrigin)
+	r.execute(ansi.EraseEntireScreen)
+	r.execute(ansi.CursorOrigin)
 
 	r.repaint()
 }
@@ -335,8 +342,8 @@ func (r *standardRenderer) enterAltScreen() {
 	//
 	// Note: we can't use r.clearScreen() here because the mutex is already
 	// locked.
-	r.execute(ansi.EraseEntireDisplay)
-	r.execute(ansi.MoveCursorOrigin)
+	r.execute(ansi.EraseEntireScreen)
+	r.execute(ansi.CursorOrigin)
 
 	// cmd.exe and other terminals keep separate cursor states for the AltScreen
 	// and the main buffer. We have to explicitly reset the cursor visibility
@@ -454,6 +461,29 @@ func (r *standardRenderer) bracketedPasteActive() bool {
 	return r.bpActive
 }
 
+func (r *standardRenderer) enableReportFocus() {
+	r.mtx.Lock()
+	defer r.mtx.Unlock()
+
+	r.execute(ansi.EnableReportFocus)
+	r.reportingFocus = true
+}
+
+func (r *standardRenderer) disableReportFocus() {
+	r.mtx.Lock()
+	defer r.mtx.Unlock()
+
+	r.execute(ansi.DisableReportFocus)
+	r.reportingFocus = false
+}
+
+func (r *standardRenderer) reportFocus() bool {
+	r.mtx.Lock()
+	defer r.mtx.Unlock()
+
+	return r.reportingFocus
+}
+
 // setWindowTitle sets the terminal window title.
 func (r *standardRenderer) setWindowTitle(title string) {
 	r.execute(ansi.SetWindowTitle(title))
@@ -486,7 +516,7 @@ func (r *standardRenderer) setIgnoredLines(from int, to int) {
 			}
 			buf.WriteString(ansi.CursorUp1)
 		}
-		buf.WriteString(ansi.MoveCursor(r.linesRendered, 0)) // put cursor back
+		buf.WriteString(ansi.SetCursorPosition(0, r.linesRendered)) // put cursor back
 		_, _ = r.out.Write(buf.Bytes())
 	}
 }
@@ -516,6 +546,9 @@ func (r *standardRenderer) clearIgnoredLines() {
 // use in high-performance rendering, such as a pager that could potentially
 // be rendering very complicated ansi. In cases where the content is simpler
 // standard Bubble Tea rendering should suffice.
+//
+// Deprecated: This option is deprecated and will be removed in a future
+// version of this package.
 func (r *standardRenderer) insertTop(lines []string, topBoundary, bottomBoundary int) {
 	r.mtx.Lock()
 	defer r.mtx.Unlock()
@@ -523,13 +556,13 @@ func (r *standardRenderer) insertTop(lines []string, topBoundary, bottomBoundary
 	buf := &bytes.Buffer{}
 
 	buf.WriteString(ansi.SetScrollingRegion(topBoundary, bottomBoundary))
-	buf.WriteString(ansi.MoveCursor(topBoundary, 0))
+	buf.WriteString(ansi.SetCursorPosition(0, topBoundary))
 	buf.WriteString(ansi.InsertLine(len(lines)))
 	_, _ = buf.WriteString(strings.Join(lines, "\r\n"))
 	buf.WriteString(ansi.SetScrollingRegion(0, r.height))
 
 	// Move cursor back to where the main rendering routine expects it to be
-	buf.WriteString(ansi.MoveCursor(r.linesRendered, 0))
+	buf.WriteString(ansi.SetCursorPosition(0, r.linesRendered))
 
 	_, _ = r.out.Write(buf.Bytes())
 }
@@ -543,6 +576,9 @@ func (r *standardRenderer) insertTop(lines []string, topBoundary, bottomBoundary
 // See note in insertTop() for caveats, how this function only makes sense for
 // full-window applications, and how it differs from the normal way we do
 // rendering in Bubble Tea.
+//
+// Deprecated: This option is deprecated and will be removed in a future
+// version of this package.
 func (r *standardRenderer) insertBottom(lines []string, topBoundary, bottomBoundary int) {
 	r.mtx.Lock()
 	defer r.mtx.Unlock()
@@ -550,12 +586,12 @@ func (r *standardRenderer) insertBottom(lines []string, topBoundary, bottomBound
 	buf := &bytes.Buffer{}
 
 	buf.WriteString(ansi.SetScrollingRegion(topBoundary, bottomBoundary))
-	buf.WriteString(ansi.MoveCursor(bottomBoundary, 0))
+	buf.WriteString(ansi.SetCursorPosition(0, bottomBoundary))
 	_, _ = buf.WriteString("\r\n" + strings.Join(lines, "\r\n"))
 	buf.WriteString(ansi.SetScrollingRegion(0, r.height))
 
 	// Move cursor back to where the main rendering routine expects it to be
-	buf.WriteString(ansi.MoveCursor(r.linesRendered, 0))
+	buf.WriteString(ansi.SetCursorPosition(0, r.linesRendered))
 
 	_, _ = r.out.Write(buf.Bytes())
 }
@@ -627,6 +663,8 @@ type syncScrollAreaMsg struct {
 // should also be called on resize (WindowSizeMsg).
 //
 // For high-performance, scroll-based rendering only.
+//
+// Deprecated: This option will be removed in a future version of this package.
 func SyncScrollArea(lines []string, topBoundary int, bottomBoundary int) Cmd {
 	return func() Msg {
 		return syncScrollAreaMsg{
@@ -643,6 +681,8 @@ type clearScrollAreaMsg struct{}
 // those lines to the main rendering routine.
 //
 // For high-performance, scroll-based rendering only.
+//
+// Deprecated: This option will be removed in a future version of this package.
 func ClearScrollArea() Msg {
 	return clearScrollAreaMsg{}
 }
@@ -658,6 +698,8 @@ type scrollUpMsg struct {
 // from view.
 //
 // For high-performance, scroll-based rendering only.
+//
+// Deprecated: This option will be removed in a future version of this package.
 func ScrollUp(newLines []string, topBoundary, bottomBoundary int) Cmd {
 	return func() Msg {
 		return scrollUpMsg{
@@ -679,6 +721,8 @@ type scrollDownMsg struct {
 // disappear from view.
 //
 // For high-performance, scroll-based rendering only.
+//
+// Deprecated: This option will be removed in a future version of this package.
 func ScrollDown(newLines []string, topBoundary, bottomBoundary int) Cmd {
 	return func() Msg {
 		return scrollDownMsg{
