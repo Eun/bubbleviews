@@ -49,6 +49,23 @@ func WithInputTTY() ProgramOption {
 	}
 }
 
+// WithEnvironment sets the environment variables that the program will use.
+// This useful when the program is running in a remote session (e.g. SSH) and
+// you want to pass the environment variables from the remote session to the
+// program.
+//
+// Example:
+//
+//	var sess ssh.Session // ssh.Session is a type from the github.com/charmbracelet/ssh package
+//	pty, _, _ := sess.Pty()
+//	environ := append(sess.Environ(), "TERM="+pty.Term)
+//	p := tea.NewProgram(model, tea.WithEnvironment(environ)
+func WithEnvironment(env []string) ProgramOption {
+	return func(p *Program) {
+		p.environ = env
+	}
+}
+
 // WithoutSignalHandler disables the signal handler that Bubble Tea sets up for
 // Programs. This is useful if you want to handle signals yourself.
 func WithoutSignalHandler() ProgramOption {
@@ -89,6 +106,8 @@ func WithoutSignals() ProgramOption {
 //
 // To enter the altscreen once the program has already started running use the
 // EnterAltScreen command.
+//
+// Deprecated: use the [EnterAltScreen] [Cmd] in your [Model.Init] instead.
 func WithAltScreen() ProgramOption {
 	return func(p *Program) {
 		p.startupOptions |= withAltScreen
@@ -96,6 +115,9 @@ func WithAltScreen() ProgramOption {
 }
 
 // WithoutBracketedPaste starts the program with bracketed paste disabled.
+//
+// Deprecated: use the [EnableBracketedPaste] [Cmd] in your [Model.Init]
+// instead.
 func WithoutBracketedPaste() ProgramOption {
 	return func(p *Program) {
 		p.startupOptions |= withoutBracketedPaste
@@ -117,6 +139,9 @@ func WithoutBracketedPaste() ProgramOption {
 // running use the DisableMouse command.
 //
 // The mouse will be automatically disabled when the program exits.
+//
+// Deprecated: use the [EnableMouseCellMotion] [Cmd] in your [Model.Init]
+// instead.
 func WithMouseCellMotion() ProgramOption {
 	return func(p *Program) {
 		p.startupOptions |= withMouseCellMotion // set
@@ -142,6 +167,9 @@ func WithMouseCellMotion() ProgramOption {
 // running use the DisableMouse command.
 //
 // The mouse will be automatically disabled when the program exits.
+//
+// Deprecated: use the [EnableMouseAllMotion] [Cmd] in your [Model.Init]
+// instead.
 func WithMouseAllMotion() ProgramOption {
 	return func(p *Program) {
 		p.startupOptions |= withMouseAllMotion   // set
@@ -168,6 +196,13 @@ func WithoutRenderer() ProgramOption {
 //
 // This feature is provisional, and may be changed or removed in a future version
 // of this package.
+//
+// Deprecated: this incurs a noticeable performance hit. A future release will
+// optimize ANSI automatically without the performance penalty.
+//
+// Deprecated: this will be removed in a future release. This ANSI compressor
+// has major performance implications and we don't recommend using it. In v2,
+// rendering bandwidth will be decreased significantly.
 func WithANSICompressor() ProgramOption {
 	return func(p *Program) {
 		p.startupOptions |= withANSICompressor
@@ -215,5 +250,20 @@ func WithFilter(filter func(Model, Msg) Msg) ProgramOption {
 func WithFPS(fps int) ProgramOption {
 	return func(p *Program) {
 		p.fps = fps
+	}
+}
+
+// WithReportFocus enables reporting when the terminal gains and loses
+// focus. When this is enabled [FocusMsg] and [BlurMsg] messages will be sent
+// to your Update method.
+//
+// Note that while most terminals and multiplexers support focus reporting,
+// some do not. Also note that tmux needs to be configured to report focus
+// events.
+//
+// Deprecated: use the [EnableReportFocus] [Cmd] in your [Model.Init] instead.
+func WithReportFocus() ProgramOption {
+	return func(p *Program) {
+		p.startupOptions |= withReportFocus
 	}
 }

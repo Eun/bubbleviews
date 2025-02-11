@@ -26,8 +26,12 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
-// ErrProgramKilled is returned by [Program.Run] when the program got killed.
+// ErrProgramKilled is returned by [Program.Run] when the program gets killed.
 var ErrProgramKilled = errors.New("program was killed")
+
+// ErrInterrupted is returned by [Program.Run] when the program get a SIGINT
+// signal, or when it receives a [InterruptMsg].
+var ErrInterrupted = errors.New("program was interrupted")
 
 // Msg contain data from the result of a IO operation. Msgs trigger the update
 // function and, henceforth, the UI.
@@ -97,6 +101,7 @@ const (
 	// feature is on by default.
 	withoutCatchPanics
 	withoutBracketedPaste
+	withReportFocus
 )
 
 // channelHandlers manages the series of channels returned by various processes.
@@ -127,6 +132,10 @@ func (h channelHandlers) shutdown() {
 type Program struct {
 	initialModel Model
 
+	// handlers is a list of channels that need to be waited on before the
+	// program can exit.
+	handlers channelHandlers
+
 	// Configuration options that will set as the program is initializing,
 	// treated as bits. These options can be set via various ProgramOptions.
 	startupOptions startupOptions
@@ -151,6 +160,9 @@ type Program struct {
 	previousOutputState *term.State
 	renderer            renderer
 
+	// the environment variables for the program, defaults to os.Environ().
+	environ []string
+
 	// where to read inputs from, this will usually be os.Stdin.
 	input io.Reader
 	// ttyInput is null if input is not a TTY.
@@ -164,6 +176,7 @@ type Program struct {
 	ignoreSignals      uint32
 
 	bpWasActive bool // was the bracketed paste mode active before releasing the terminal?
+	reportFocus bool // was focus reporting active before releasing the terminal?
 
 	filter func(Model, Msg) Msg
 
@@ -177,9 +190,40 @@ func Quit() Msg {
 	return QuitMsg{}
 }
 
-// QuitMsg signals that the program should quit. You can send a QuitMsg with
-// Quit.
+// QuitMsg signals that the program should quit. You can send a [QuitMsg] with
+// [Quit].
 type QuitMsg struct{}
+
+// Suspend is a special command that tells the Bubble Tea program to suspend.
+func Suspend() Msg {
+	return SuspendMsg{}
+}
+
+// SuspendMsg signals the program should suspend.
+// This usually happens when ctrl+z is pressed on common programs, but since
+// bubbletea puts the terminal in raw mode, we need to handle it in a
+// per-program basis.
+//
+// You can send this message with [Suspend()].
+type SuspendMsg struct{}
+
+// ResumeMsg can be listen to to do something once a program is resumed back
+// from a suspend state.
+type ResumeMsg struct{}
+
+// InterruptMsg signals the program should suspend.
+// This usually happens when ctrl+c is pressed on common programs, but since
+// bubbletea puts the terminal in raw mode, we need to handle it in a
+// per-program basis.
+//
+// You can send this message with [Interrupt()].
+type InterruptMsg struct{}
+
+// Interrupt is a special command that tells the Bubble Tea program to
+// interrupt.
+func Interrupt() Msg {
+	return InterruptMsg{}
+}
 
 // NewProgram creates a new Program.
 func NewProgram(model Model, opts ...ProgramOption) *Program {
@@ -204,6 +248,11 @@ func NewProgram(model Model, opts ...ProgramOption) *Program {
 	// if no output was set, set it to stdout
 	if p.output == nil {
 		p.output = os.Stdout
+	}
+
+	// if no environment was set, set it to os.Environ()
+	if p.environ == nil {
+		p.environ = os.Environ()
 	}
 
 	return p
@@ -233,9 +282,14 @@ func (p *Program) handleSignals() chan struct{} {
 			case <-p.ctx.Done():
 				return
 
-			case <-sig:
+			case s := <-sig:
 				if atomic.LoadUint32(&p.ignoreSignals) == 0 {
-					p.msgs <- QuitMsg{}
+					switch s {
+					case syscall.SIGINT:
+						p.msgs <- InterruptMsg{}
+					default:
+						p.msgs <- QuitMsg{}
+					}
 					return
 				}
 			}
@@ -286,6 +340,11 @@ func (p *Program) handleCommands(cmds chan Cmd) chan struct{} {
 				// possible to cancel them so we'll have to leak the goroutine
 				// until Cmd returns.
 				go func() {
+					// Recover from panics.
+					if !p.startupOptions.has(withoutCatchPanics) {
+						defer p.recoverFromPanic()
+					}
+
 					msg := cmd() // this can be long.
 					p.Send(msg)
 				}()
@@ -327,6 +386,14 @@ func (p *Program) eventLoop(model Model, cmds chan Cmd) (Model, error) {
 			case QuitMsg:
 				return model, nil
 
+			case InterruptMsg:
+				return model, ErrInterrupted
+
+			case SuspendMsg:
+				if suspendSupported {
+					p.suspend()
+				}
+
 			case clearScreenMsg:
 				p.renderer.clearScreen()
 
@@ -360,6 +427,12 @@ func (p *Program) eventLoop(model Model, cmds chan Cmd) (Model, error) {
 
 			case disableBracketedPasteMsg:
 				p.renderer.disableBracketedPaste()
+
+			case enableReportFocusMsg:
+				p.renderer.enableReportFocus()
+
+			case disableReportFocusMsg:
+				p.renderer.disableReportFocus()
 
 			case execMsg:
 				// NB: this blocks.
@@ -401,6 +474,9 @@ func (p *Program) eventLoop(model Model, cmds chan Cmd) (Model, error) {
 
 			case setWindowTitleMsg:
 				p.SetWindowTitle(string(msg))
+
+			case windowSizeMsg:
+				go p.checkResize()
 			}
 
 			// Process internal messages for the renderer.
@@ -420,7 +496,7 @@ func (p *Program) eventLoop(model Model, cmds chan Cmd) (Model, error) {
 // terminated by either [Program.Quit], [Program.Kill], or its signal handler.
 // Returns the final model.
 func (p *Program) Run() (Model, error) {
-	handlers := channelHandlers{}
+	p.handlers = channelHandlers{}
 	cmds := make(chan Cmd)
 	p.errs = make(chan error)
 	p.finished = make(chan struct{}, 1)
@@ -467,19 +543,12 @@ func (p *Program) Run() (Model, error) {
 
 	// Handle signals.
 	if !p.startupOptions.has(withoutSignalHandler) {
-		handlers.add(p.handleSignals())
+		p.handlers.add(p.handleSignals())
 	}
 
 	// Recover from panics.
 	if !p.startupOptions.has(withoutCatchPanics) {
-		defer func() {
-			if r := recover(); r != nil {
-				p.shutdown(true)
-				fmt.Printf("Caught panic:\n\n%s\n\nRestoring terminal...\n\n", r)
-				debug.PrintStack()
-				return
-			}
-		}()
+		defer p.recoverFromPanic()
 	}
 
 	// If no renderer is set use the standard one.
@@ -510,6 +579,9 @@ func (p *Program) Run() (Model, error) {
 		p.renderer.enableMouseAllMotion()
 		p.renderer.enableMouseSGRMode()
 	}
+	if p.startupOptions&withReportFocus != 0 {
+		p.renderer.enableReportFocus()
+	}
 
 	// Start the renderer.
 	p.renderer.start()
@@ -518,7 +590,7 @@ func (p *Program) Run() (Model, error) {
 	model := p.initialModel
 	if initCmd := model.Init(); initCmd != nil {
 		ch := make(chan struct{})
-		handlers.add(ch)
+		p.handlers.add(ch)
 
 		go func() {
 			defer close(ch)
@@ -541,35 +613,21 @@ func (p *Program) Run() (Model, error) {
 	}
 
 	// Handle resize events.
-	handlers.add(p.handleResize())
+	p.handlers.add(p.handleResize())
 
 	// Process commands.
-	handlers.add(p.handleCommands(cmds))
+	p.handlers.add(p.handleCommands(cmds))
 
 	// Run event loop, handle updates and draw.
 	model, err := p.eventLoop(model, cmds)
-	killed := p.ctx.Err() != nil
-	if killed {
-		err = ErrProgramKilled
-	} else {
+	killed := p.ctx.Err() != nil || err != nil
+	if killed && err == nil {
+		err = fmt.Errorf("%w: %s", ErrProgramKilled, p.ctx.Err())
+	}
+	if err == nil {
 		// Ensure we rendered the final state of the model.
 		p.renderer.write(model.View())
 	}
-
-	// Tear down.
-	p.cancel()
-
-	// Check if the cancel reader has been setup before waiting and closing.
-	if p.cancelReader != nil {
-		// Wait for input loop to finish.
-		if p.cancelReader.Cancel() {
-			p.waitForReadLoop()
-		}
-		_ = p.cancelReader.Close()
-	}
-
-	// Wait for all handlers to finish.
-	handlers.shutdown()
 
 	// Restore terminal state.
 	p.shutdown(killed)
@@ -625,7 +683,7 @@ func (p *Program) Quit() {
 // The final render that you would normally see when quitting will be skipped.
 // [program.Run] returns a [ErrProgramKilled] error.
 func (p *Program) Kill() {
-	p.cancel()
+	p.shutdown(true)
 }
 
 // Wait waits/blocks until the underlying Program finished shutting down.
@@ -636,6 +694,22 @@ func (p *Program) Wait() {
 // shutdown performs operations to free up resources and restore the terminal
 // to its original state.
 func (p *Program) shutdown(kill bool) {
+	p.cancel()
+
+	// Wait for all handlers to finish.
+	p.handlers.shutdown()
+
+	// Check if the cancel reader has been setup before waiting and closing.
+	if p.cancelReader != nil {
+		// Wait for input loop to finish.
+		if p.cancelReader.Cancel() {
+			if !kill {
+				p.waitForReadLoop()
+			}
+		}
+		_ = p.cancelReader.Close()
+	}
+
 	if p.renderer != nil {
 		if kill {
 			p.renderer.kill()
@@ -645,7 +719,19 @@ func (p *Program) shutdown(kill bool) {
 	}
 
 	_ = p.restoreTerminalState()
-	p.finished <- struct{}{}
+	if !kill {
+		p.finished <- struct{}{}
+	}
+}
+
+// recoverFromPanic recovers from a panic, prints the stack trace, and restores
+// the terminal to a usable state.
+func (p *Program) recoverFromPanic() {
+	if r := recover(); r != nil {
+		p.shutdown(true)
+		fmt.Printf("Caught panic:\n\n%s\n\nRestoring terminal...\n\n", r)
+		debug.PrintStack()
+	}
 }
 
 // ReleaseTerminal restores the original terminal state and cancels the input
@@ -662,6 +748,7 @@ func (p *Program) ReleaseTerminal() error {
 		p.renderer.stop()
 		p.altScreenWasActive = p.renderer.altScreen()
 		p.bpWasActive = p.renderer.bracketedPasteActive()
+		p.reportFocus = p.renderer.reportFocus()
 	}
 
 	return p.restoreTerminalState()
@@ -690,6 +777,9 @@ func (p *Program) RestoreTerminal() error {
 	}
 	if p.bpWasActive {
 		p.renderer.enableBracketedPaste()
+	}
+	if p.reportFocus {
+		p.renderer.enableReportFocus()
 	}
 
 	// If the output is a terminal, it may have been resized while another
